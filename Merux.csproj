@@ -1,0 +1,112 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<OutputType>Exe</OutputType>
+	<TargetFramework>net6.0</TargetFramework>
+	<RootNamespace>Merux</RootNamespace>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Platforms>AnyCPU;x64;x86</Platforms>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="FontStashSharp.Base" Version="1.1.11" />
+	<PackageReference Include="FontStashSharp.Rasterizers.StbTrueTypeSharp" Version="1.1.11" />
+	<PackageReference Include="NAudio" Version="2.2.1" />
+	<PackageReference Include="OpenTK" Version="4.9.4" />
+	<PackageReference Include="OpenTK.Mathematics" Version="4.9.4" />
+	<PackageReference Include="SharpGLTF.Runtime" Version="1.0.5" />
+	<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Content Include="Meshes\**\*">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="Shaders\**\*">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+	<Content Include="Textures\**\*">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Meshes\cube.glb" />
+    <Content Remove="Shaders\Mouse.frag" />
+    <Content Remove="Shaders\Mouse.vert" />
+    <Content Remove="Shaders\Part.frag" />
+    <Content Remove="Shaders\Part.vert" />
+    <Content Remove="Shaders\Sky.frag" />
+    <Content Remove="Shaders\Sky.vert" />
+    <Content Remove="Textures\cursor.png" />
+    <Content Remove="Textures\favicon.png" />
+    <Content Remove="Textures\inlet.png" />
+    <Content Remove="Textures\sky_ba.png" />
+    <Content Remove="Textures\sky_bo.png" />
+    <Content Remove="Textures\sky_fr.png" />
+    <Content Remove="Textures\sky_le.png" />
+    <Content Remove="Textures\sky_ri.png" />
+    <Content Remove="Textures\sky_to.png" />
+    <Content Remove="Textures\smooth.png" />
+    <Content Remove="Textures\studs.png" />
+    <Content Remove="Textures\universal.png" />
+    <Content Remove="Textures\weld.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="BulletSharp.dll" />
+    <None Remove="Fonts\meruxfont.otf" />
+    <None Remove="shaders\Mouse.frag" />
+    <None Remove="shaders\Mouse.vert" />
+    <None Remove="shaders\Sky.frag" />
+    <None Remove="shaders\Sky.vert" />
+    <None Remove="Sounds\click.wav" />
+    <None Remove="Sounds\destroy.wav" />
+    <None Remove="Sounds\put.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts\meruxfont.otf" />
+    <EmbeddedResource Include="Meshes\cube.glb" />
+    <EmbeddedResource Include="Shaders\Mouse.frag" />
+    <EmbeddedResource Include="Shaders\Mouse.vert" />
+    <EmbeddedResource Include="Shaders\Part.frag" />
+    <EmbeddedResource Include="Shaders\Part.vert" />
+    <EmbeddedResource Include="Shaders\Sky.frag" />
+    <EmbeddedResource Include="Shaders\Sky.vert" />
+    <EmbeddedResource Include="Sounds\click.wav" />
+    <EmbeddedResource Include="Sounds\destroy.wav" />
+    <EmbeddedResource Include="Sounds\put.wav" />
+    <EmbeddedResource Include="Textures\cursor.png" />
+    <EmbeddedResource Include="Textures\favicon.png" />
+    <EmbeddedResource Include="Textures\inlet.png" />
+    <EmbeddedResource Include="Textures\sky_ba.png" />
+    <EmbeddedResource Include="Textures\sky_bo.png" />
+    <EmbeddedResource Include="Textures\sky_fr.png" />
+    <EmbeddedResource Include="Textures\sky_le.png" />
+    <EmbeddedResource Include="Textures\sky_ri.png" />
+    <EmbeddedResource Include="Textures\sky_to.png" />
+    <EmbeddedResource Include="Textures\smooth.png" />
+    <EmbeddedResource Include="Textures\studs.png" />
+    <EmbeddedResource Include="Textures\universal.png" />
+    <EmbeddedResource Include="Textures\weld.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="BulletSharp.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BulletSharp">
+      <HintPath>BulletSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /y /d &quot;$(ProjectDir)*.dll&quot; &quot;$(ProjectDir)$(OutDir)&quot;" />
+  </Target>
+
+</Project>

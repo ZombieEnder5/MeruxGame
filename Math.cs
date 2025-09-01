@@ -6,6 +6,24 @@ using System.Threading.Tasks;
 
 namespace Merux.Mathematics
 {
+	public class GuiDim
+	{
+		public Vector2 Window;
+		public Vector2 Offset;
+
+		public GuiDim(Vector2 window, Vector2 offset)
+		{
+			Window = window;
+			Offset = offset;
+		}
+
+		public GuiDim(double wX, double wY, double oX, double oY)
+		{
+			Window = new Vector2(wX, wY);
+			Offset = new Vector2(oX, oY);
+		}
+	}
+
 	public class Vector2
 	{
 		public double X = 0.0;

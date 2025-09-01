@@ -209,23 +209,21 @@ namespace Merux.Instances
 
 		static internal readonly Dictionary<(int, int, int), BoxShape> boxCache = new();
 
-		public Part() : base()
+		protected Part() : base()
 		{
 			Name = "Part";
-
-			setupRigidbody();
 		}
 
 		private void disposeRigidbody()
 		{
-			var list = Game.Workspace.rigidReference.Where(p => p.Value == this).ToList();
+			var list = Merux.Game.Workspace.rigidReference.Where(p => p.Value == this).ToList();
 			foreach (var item in list)
-				Game.Workspace.removeRigidBody(item.Key);
+				Merux.Game.Workspace.removeRigidBody(item.Key);
 			motionState.Dispose();
 			rigidBody.Dispose();
 		}
 
-		private void setupRigidbody()
+		internal void setupRigidbody()
 		{
 			var start = realCFrame.ToNumericsMatrix();
 			var shape = GetBoxShape(Size.Numerics() * .5f);
@@ -320,16 +318,14 @@ namespace Merux.Instances
 					if (!CanCollide && !rigidBody.IsDisposed)
 					{
 						Debug.Print("A");
-						if (IsDescendantOf(Game.Workspace))
-							Game.Workspace.removeRigidBody(rigidBody);
 						disposeRigidbody();
 					}
 					else if (!rigidBody.IsDisposed)
 					{
 						Debug.Print("B");
 						setupRigidbody();
-						if (IsDescendantOf(Game.Workspace))
-							Game.Workspace.addRigidBody(this, rigidBody);
+						if (IsDescendantOf(Merux.Game.Workspace))
+							Merux.Game.Workspace.addRigidBody(this, rigidBody);
 					}
 				}
 			}
@@ -337,16 +333,10 @@ namespace Merux.Instances
 			{
 				if (dirtyFlagSet(ENTIRE_DIRTY))
 				{
-					if (IsDescendantOf(Game.Workspace))
-					{
-						Game.Workspace.removeRigidBody(rigidBody);
-					}
 					disposeRigidbody();
 					setupRigidbody();
-					if (IsDescendantOf(Game.Workspace))
-					{
-						Game.Workspace.addRigidBody(this, rigidBody);
-					}
+					if (IsDescendantOf(Merux.Game.Workspace))
+						Merux.Game.Workspace.addRigidBody(this, rigidBody);
 				}
 				if (dirtyFlagSet(CFRAME_DIRTY))
 				{

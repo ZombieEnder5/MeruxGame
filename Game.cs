@@ -11,32 +11,59 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Runtime.CompilerServices;
 using OpenTK.Audio.OpenAL;
+using System.Runtime.InteropServices;
+using static OpenTK.Graphics.OpenGL.GL;
+using Merux.Tools;
+
+/*
+ * before I start, I'd like to admit shamefully that I did use ChatGPT for some parts of the code in this project.
+ * however, in my defense, Google does not provide relevant results very often. neither does Bing.
+ * and occasionally I just get completely stuck at parts that I cannot figure out at all.
+ * THOSE are the only times I use ChatGPT. no other time.
+ * I'd really like to keep this project going without a brick wall stopping me in my tracks permanently.
+ */
 
 namespace Merux
 {
-    public class Game
+
+    public class Game : Instance
 	{
-		public static Workspace Workspace = new Workspace();
+		public Workspace Workspace = new Workspace();
 		public static Shader SHADER_PART = Shader.FromPath("Shaders.Part");
 		public static Shader SHADER_SKY = Shader.FromPath("Shaders.Sky");
-		public static float Time = 0f;
-		public static Random randomSource = new Random();
+		public static Shader SHADER_TEXT = Shader.FromPath("Shaders.Text");
+		public float Time = 0f;
+		public Random RandomSource = new Random();
 
-		static Part selector;
-		static private bool hovering = false;
+		public Part selector;
+		public bool hovering = false;
 
-		static private bool debounce1 = false;
-		static private bool debounce2 = false;
+		private bool debounce = false;
 
-		static int PUT_SND_SRC;
-		static int DST_SND_SRC;
-		static int CLK_SND_SRC;
+		public int PUT_SND_SRC;
+		public int DST_SND_SRC;
+		public int CLK_SND_SRC;
 
-		public static FontSystem fontSys = new FontSystem();
-		public static QFont GAME_FONT;
-		
-		static QFontDrawing createText = new QFontDrawing();
-		static QFontDrawing deleteText = new QFontDrawing();
+		public event Action? MouseLeftClickEvent;
+		public event Action? MouseLeftReleaseEvent;
+
+		readonly internal TextRenderer rend;
+
+		static readonly int TOOL_ICON_SIZE = 200;
+
+		ScreenImage helpText = new ScreenImage(Merux.LoadStream("Textures.helptext.png"))
+		{
+			Position = new GuiDim(1, 1, 0, 0),
+			AnchorPoint = new Vector2(1, 1),
+			Size = new Vector2(512, 64)
+		};
+
+		ToolScript[] tools;
+		Dictionary<ToolScript, ScreenImage> toolIcons = new();
+		int toolMode = 0;
+		int lastToolMode = -1;
+
+		RayHit? mouseHitCache = null;
 
 		protected static Cubemap skyCube = new Cubemap(new string[] {
 			"Textures.sky_ri.png", // right
@@ -47,51 +74,46 @@ namespace Merux
 			"Textures.sky_ba.png", // front
 		});
 
-		static Camera mainCamera = new Camera();
+		Camera mainCamera = new Camera();
 
-		static internal Merux window { get; private set; }
-		public static Vector2 windowExtents { 
+		internal Merux window { get; private set; }
+		public Vector2 windowExtents { 
 			get
 			{
 				unsafe
 				{
-					GLFW.GetFramebufferSize(window.WindowPtr, out int fbWidth, out int fbHeight);
+					GLFW.GetFramebufferSize(Merux.window.WindowPtr, out int fbWidth, out int fbHeight);
 					return new Vector2(fbWidth, fbHeight);
 				}
 			}
 		}
 
-		internal static void SetWindow(Merux _window)
+		internal Game()
 		{
-			FontStashSharp.Rasterizers.StbTrueTypeSharp.
-			if (window != null) throw new UnauthorizedAccessException("Window already set.");
-			window = _window;
-		}
-
-		internal static int BufferFromWaveform(Stream stream)
-		{
-			using var reader = new NAudio.Wave.WaveFileReader(stream);
-			var buffer = AL.GenBuffer();
-			ALFormat fmt = reader.WaveFormat.Channels switch
+			tools = new ToolScript[]
 			{
-				1 => ALFormat.Mono16,
-				2 => ALFormat.Stereo16,
-				_ => throw new NotImplementedException("not mono or stereo!?")
+				Create<CreateTool>(Workspace),
+				Create<DeleteTool>(Workspace),
 			};
-			var data = new byte[reader.Length];
-			reader.Read(data, 0, data.Length);
-			AL.BufferData(buffer, fmt, data, reader.WaveFormat.SampleRate);
-			return buffer;
-		}
 
-		public static void Start()
-		{
-			using (var stream = Merux.LoadStream("Fonts.meruxfont.otf"))
+			for (int i = 0; i < tools.Length; i++)
 			{
-				var buffer = new byte[(int)stream.Length];
-				stream.Read(buffer, 0, (int)stream.Length);
+				var tool = tools[i];
+				using (var stream = Merux.LoadStream(tool.GetIconPath()))
+				{
+					ScreenImage icon = new(stream);
+					icon.Size = Vector2.One * TOOL_ICON_SIZE;
+					icon.Position = new GuiDim(0, 1, TOOL_ICON_SIZE * i, 0);
+					icon.AnchorPoint = new Vector2(0, 1);
+					toolIcons[tool] = icon;
+				}
+			}
 
-				GAME_FONT = new(buffer, 32f, config);
+			using (var stream = Merux.LoadStream("Fonts.meruxfont.ttf"))
+			{
+				//var buffer = new byte[(int)stream.Length];
+				//stream.Read(buffer, 0, buffer.Length);
+				rend = new(stream);
 			}
 
 			ALDevice sdev = ALC.OpenDevice(null);
@@ -112,45 +134,39 @@ namespace Merux
 			GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
-			mainCamera.SetParent(Workspace);
-			selector = new Part();
-			selector.SetParent(Workspace);
+			mainCamera.Parent = Workspace;
+			selector = Instance.Create<Part>(Workspace);
 			selector.CanCollide = false;
 			selector.Color = new(0, 1, 1);
 			selector.Size = new(4, 1, 2);
 			selector.Anchored = true;
 			selector.Transparency = 0.5f;
 			selector.Name = "selector";
-			Part baseplate = new Part();
-			baseplate.SetParent(Workspace);
+			Part baseplate = Instance.Create<Part>(Workspace);
 			baseplate.Size = new Vector3(64f, 10f, 64f);
 			baseplate.Position = new Vector3(0f, -5f, 0f);
 			baseplate.Anchored = true;
 			baseplate.Name = "Baseplate I";
 			baseplate.Locked = true;
-			Part baseplate2 = new Part();
-			baseplate2.SetParent(Workspace);
+			Part baseplate2 = Instance.Create<Part>(Workspace);
 			baseplate2.Size = new Vector3(64f, 32f, 4f);
 			baseplate2.Position = new Vector3(0f, -5f, 34f);
 			baseplate2.Anchored = true;
 			baseplate2.Name = "Baseplate II";
 			baseplate2.Locked = true;
-			Part baseplate3 = new Part();
-			baseplate3.SetParent(Workspace);
+			Part baseplate3 = Instance.Create<Part>(Workspace);
 			baseplate3.Size = new Vector3(64f, 32f, 4f);
 			baseplate3.Position = new Vector3(0f, -5f, -34f);
 			baseplate3.Anchored = true;
 			baseplate3.Name = "Baseplate III";
 			baseplate3.Locked = true;
-			Part baseplate4 = new Part();
-			baseplate4.SetParent(Workspace);
+			Part baseplate4 = Instance.Create<Part>(Workspace);
 			baseplate4.Size = new Vector3(4f, 32f, 64f);
 			baseplate4.Position = new Vector3(34f, -5f, 0f);
 			baseplate4.Anchored = true;
 			baseplate4.Name = "Baseplate IV";
 			baseplate4.Locked = true;
-			Part baseplate5 = new Part();
-			baseplate5.SetParent(Workspace);
+			Part baseplate5 = Instance.Create<Part>(Workspace);
 			baseplate5.Size = new Vector3(4f, 32f, 64f);
 			baseplate5.Position = new Vector3(-34f, -5f, 0f);
 			baseplate5.Anchored = true;
@@ -159,18 +175,59 @@ namespace Merux
 			mainCamera.SetLook(new Vector3(1, 0, 0));
 		}
 
-		public static void TickAndRender(float deltaTime, OpenTK.Mathematics.Vector2i winSize)
+		internal static int BufferFromWaveform(Stream stream)
 		{
+			using var reader = new NAudio.Wave.WaveFileReader(stream);
+			var buffer = AL.GenBuffer();
+			ALFormat fmt = reader.WaveFormat.Channels switch
+			{
+				1 => ALFormat.Mono16,
+				2 => ALFormat.Stereo16,
+				_ => throw new NotImplementedException("not mono or stereo!?")
+			};
+			var data = new byte[reader.Length];
+			reader.Read(data, 0, data.Length);
+			AL.BufferData(buffer, fmt, data, reader.WaveFormat.SampleRate);
+			return buffer;
+		}
+
+		public RayHit? GetMouseHit()
+		{
+			if (mouseHitCache.HasValue) return mouseHitCache;
+			float ratio = (float)windowExtents.X / (float)windowExtents.Y;
+
+			var mpos = Merux.GetMousePosition();
+			double vx = 2.0 * mpos.X / windowExtents.X - 1.0;
+			double vy = 1.0 - 2.0 * mpos.Y / windowExtents.Y;
+
+			double tanHY = Math.Tan(mainCamera.FieldOfView * .5);
+			double tanHX = tanHY * ratio;
+
+			var localDir = new Vector3(vx * tanHX, vy * tanHY, -1).Unit;
+			hovering = Workspace.Raycast(mainCamera.CFrame.p, mainCamera.CFrame.Rotation * localDir * 100_000, out RayHit contact);
+			if (hovering)
+				return contact;
+			return null;
+		}
+
+		public void TickAndRender(float deltaTime, OpenTK.Mathematics.Vector2i winSize)
+		{
+			mouseHitCache = null;
+
 			Time += deltaTime;
-			var mouse = window.MouseState;
+			var mouse = Merux.window.MouseState;
 			var mouseDelta = mouse.Delta;
-			if (mouse.IsButtonDown(MouseButton.Right) && window.grabTimer > 1)
+			if (mouse.IsButtonDown(MouseButton.Right) && Merux.grabTimer > 1)
 			{
 				if (mouseDelta.LengthSquared > 0)
 				{
 					mainCamera.TurnCamera(Vector2.FromOpenTK(mouseDelta));
 				}
 			}
+			if (Merux.window.KeyboardState.IsKeyPressed(Keys.D1))
+				toolMode = 0;
+			else if(Merux.window.KeyboardState.IsKeyPressed(Keys.D2))
+				toolMode = 1;
 			if (mouse.ScrollDelta.Y > 0)
 				mainCamera.ZoomIn(CLK_SND_SRC);
 			else if (mouse.ScrollDelta.Y < 0)
@@ -182,60 +239,31 @@ namespace Merux
 			float ratio = (float)windowExtents.X / (float)windowExtents.Y;
 			float near = 0.1f;
 			float far = 10000f;
-			var fov = MathF.PI * 70f / 180f;
-			var projection = OpenTK.Mathematics.Matrix4.CreatePerspectiveFieldOfView(fov, ratio, near, far);
+			var projection = OpenTK.Mathematics.Matrix4.CreatePerspectiveFieldOfView(mainCamera.FieldOfView, ratio, near, far);
 
-			var mpos = window.GetMousePosition();
-			double vx = 2.0 * mpos.X / windowExtents.X - 1.0;
-			double vy = 1.0 - 2.0 * mpos.Y / windowExtents.Y;
-
-			double tanHY = Math.Tan(fov * .5);
-			double tanHX = tanHY * ratio;
-
-			var localDir = new Vector3(vx * tanHX, vy * tanHY, -1).Unit;
-			hovering = Workspace.Raycast(mainCamera.CFrame.p, mainCamera.CFrame.Rotation * localDir * 100_000, out RayHit contact);
-			if (hovering)
+			if (lastToolMode != toolMode)
 			{
-				var half = selector.Size * .5;
-				Vector3 x = half.X * Vector3.XAxis, y = half.Y * Vector3.YAxis, z = half.Z * Vector3.ZAxis;
-				var vert = EpsilonMaxBy(new[] {
-					-x - y - z,
-					-x - y + z,
-					-x + y - z,
-					-x + y + z,
-					x - y - z,
-					x - y + z,
-					x + y - z,
-					x + y + z,
-				},v => v.Dot(contact.normal),1e-2);
-				selector.Position = contact.point + vert;
-				Debug.Print(contact.part);
+				if (lastToolMode > -1)
+				{
+					var last = tools[lastToolMode];
+					last.Unequip();
+				}
+				if (toolMode > -1)
+				{
+					var equipping = tools[toolMode];
+					equipping.Equip();
+				}
+				lastToolMode = toolMode;
 			}
 
 			bool leftMBDown = mouse.IsButtonDown(MouseButton.Left);
-			bool midMBDown = mouse.IsButtonDown(MouseButton.Middle);
-			if (leftMBDown ^ debounce1)
+			if (leftMBDown ^ debounce)
 			{
-				debounce1 = leftMBDown;
-				if (leftMBDown && hovering)
-				{
-					var inst = new Part();
-					inst.SetParent(Workspace);
-					inst.Position = selector.Position;
-					inst.Color = selector.Color;
-					inst.Size = new Vector3(4, 1, 2);
-					selector.Color = new Vector3(randomSource.NextDouble(), randomSource.NextDouble(), randomSource.NextDouble());
-					AL.SourcePlay(PUT_SND_SRC);
-				}
-			}
-			if (midMBDown ^ debounce2)
-			{
-				debounce2 = midMBDown;
-				if (midMBDown && hovering && !contact.part.Locked)
-				{
-					contact.part.Destroy();
-					AL.SourcePlay(DST_SND_SRC);
-				}
+				debounce = leftMBDown;
+				if (leftMBDown)
+					MouseLeftClickEvent?.Invoke();
+				else
+					MouseLeftReleaseEvent?.Invoke();
 			}
 
 			Workspace.Tick(deltaTime);
@@ -248,7 +276,7 @@ namespace Merux
 			GL.BindVertexArray(Mesh.CubeMesh.VAO);
 			skyCube.Bind();
 			GL.DrawElements(PrimitiveType.Triangles, Mesh.CubeMesh.IndexCount, DrawElementsType.UnsignedShort, 0);
-			GL.DepthFunc(DepthFunction.Less);
+			//GL.DepthFunc(DepthFunction.Less);
 			GL.Enable(EnableCap.CullFace);
 			var list = Workspace.GetDescendantsOfClass<Part>().ToList();
 			var opaque = list.Where(p => p.Transparency <= 0f);
@@ -262,15 +290,26 @@ namespace Merux
 					part.Render(view, projection);
 				GL.DepthMask(true);
 			}
+
+			helpText.Render();
+
+			for(int i = 0; i < tools.Length; i++)
+			{
+				var tool = tools[i];
+				var icon = toolIcons[tool];
+				icon.TintAlpha = i == toolMode ? 0f : 0.2f;
+				icon.Render();
+			}
 		}
 
-		public static void Dispose()
+		public override void Dispose()
 		{
+			helpText.Dispose();
 			skyCube.Dispose();
-			Workspace.Dispose();
+			base.Dispose();
 		}
 
-		internal static T EpsilonMaxBy<T>(T[] values, Func<T, double> selectFunc, double epsilon)
+		internal T EpsilonMaxBy<T>(T[] values, Func<T, double> selectFunc, double epsilon)
 		{
 			T best = values[0];
 			double amt = selectFunc(best);

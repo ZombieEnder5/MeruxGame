@@ -12,13 +12,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="FontStashSharp.Base" Version="1.1.11" />
-	<PackageReference Include="FontStashSharp.Rasterizers.StbTrueTypeSharp" Version="1.1.11" />
 	<PackageReference Include="NAudio" Version="2.2.1" />
 	<PackageReference Include="OpenTK" Version="4.9.4" />
 	<PackageReference Include="OpenTK.Mathematics" Version="4.9.4" />
 	<PackageReference Include="SharpGLTF.Runtime" Version="1.0.5" />
-	<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+	<PackageReference Include="SixLabors.ImageSharp" Version="3.*" />
+	<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.*" />
+	<PackageReference Include="SixLabors.Fonts" Version="2.*" />
+	<PackageReference Include="SkiaSharp" Version="3.119.0" />
+	<PackageReference Include="System.Drawing.Common" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,14 +37,19 @@
 
   <ItemGroup>
     <Content Remove="Meshes\cube.glb" />
-    <Content Remove="Shaders\Mouse.frag" />
-    <Content Remove="Shaders\Mouse.vert" />
+    <Content Remove="Shaders\Image.frag" />
+    <Content Remove="Shaders\Image.vert" />
     <Content Remove="Shaders\Part.frag" />
     <Content Remove="Shaders\Part.vert" />
     <Content Remove="Shaders\Sky.frag" />
     <Content Remove="Shaders\Sky.vert" />
+    <Content Remove="Shaders\Text.frag" />
+    <Content Remove="Shaders\Text.vert" />
+    <Content Remove="Textures\createIcon.png" />
     <Content Remove="Textures\cursor.png" />
+    <Content Remove="Textures\deleteIcon.png" />
     <Content Remove="Textures\favicon.png" />
+    <Content Remove="Textures\helptext.png" />
     <Content Remove="Textures\inlet.png" />
     <Content Remove="Textures\sky_ba.png" />
     <Content Remove="Textures\sky_bo.png" />
@@ -59,29 +66,37 @@
   <ItemGroup>
     <None Remove="BulletSharp.dll" />
     <None Remove="Fonts\meruxfont.otf" />
-    <None Remove="shaders\Mouse.frag" />
-    <None Remove="shaders\Mouse.vert" />
+    <None Remove="Fonts\meruxfont.ttf" />
+    <None Remove="shaders\Image.frag" />
+    <None Remove="shaders\Image.vert" />
     <None Remove="shaders\Sky.frag" />
     <None Remove="shaders\Sky.vert" />
+    <None Remove="shaders\Text.frag" />
+    <None Remove="shaders\Text.vert" />
     <None Remove="Sounds\click.wav" />
     <None Remove="Sounds\destroy.wav" />
     <None Remove="Sounds\put.wav" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Fonts\meruxfont.otf" />
+    <EmbeddedResource Include="Fonts\meruxfont.ttf" />
     <EmbeddedResource Include="Meshes\cube.glb" />
-    <EmbeddedResource Include="Shaders\Mouse.frag" />
-    <EmbeddedResource Include="Shaders\Mouse.vert" />
+    <EmbeddedResource Include="Shaders\Image.frag" />
+    <EmbeddedResource Include="Shaders\Image.vert" />
     <EmbeddedResource Include="Shaders\Part.frag" />
     <EmbeddedResource Include="Shaders\Part.vert" />
     <EmbeddedResource Include="Shaders\Sky.frag" />
     <EmbeddedResource Include="Shaders\Sky.vert" />
+    <EmbeddedResource Include="Shaders\Text.frag" />
+    <EmbeddedResource Include="Shaders\Text.vert" />
     <EmbeddedResource Include="Sounds\click.wav" />
     <EmbeddedResource Include="Sounds\destroy.wav" />
     <EmbeddedResource Include="Sounds\put.wav" />
+    <EmbeddedResource Include="Textures\createIcon.png" />
     <EmbeddedResource Include="Textures\cursor.png" />
+    <EmbeddedResource Include="Textures\deleteIcon.png" />
     <EmbeddedResource Include="Textures\favicon.png" />
+    <EmbeddedResource Include="Textures\helptext.png" />
     <EmbeddedResource Include="Textures\inlet.png" />
     <EmbeddedResource Include="Textures\sky_ba.png" />
     <EmbeddedResource Include="Textures\sky_bo.png" />

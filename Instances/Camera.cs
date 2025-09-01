@@ -16,6 +16,8 @@ namespace Merux.Instances
         Vector3 origin = Vector3.Zero;
         double zoom = 10.0;
 
+        public float FieldOfView = MathF.PI * 70f / 180f;
+
         public void ZoomIn(int snd)
         {
             zoom -= ZOOM_STEP;
@@ -32,7 +34,7 @@ namespace Merux.Instances
 
         public void TurnCamera(Vector2 mouseDelta)
         {
-            Vector2 size = Game.windowExtents;
+            Vector2 size = Merux.Game.windowExtents;
             int max = (int)Math.Max(size.X, size.Y);
             mouseDelta *= -5f;
             look += new Vector3(mouseDelta.Y / max, mouseDelta.X / max, 0);

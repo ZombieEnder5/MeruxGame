@@ -18,8 +18,11 @@ namespace Merux
 				return;
 			method = methodOptional;
 			string output = $"[{method.DeclaringType.Name}.{method.Name}]: ";
-			foreach(object o in args)
-				output += o.ToString() + " ";
+			foreach (object o in args)
+				if (o == null)
+					output += "null ";
+				else
+					output += o.ToString() + " ";
 			Console.WriteLine(output);
 		}
 	}

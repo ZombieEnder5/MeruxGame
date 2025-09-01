@@ -8,16 +8,14 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Merux
 {
-	public class Texture2D
+	public class Texture2D : IDisposable
 	{
 		public int Handle { get; private set; }
 		public Vector2 Size { get; private set; }
 
-		public Texture2D(string path)
+		public Texture2D(Stream stream)
 		{
-			Image<Rgba32> img;
-			using (Stream stream = Merux.LoadStream(path))
-				img = Image.Load<Rgba32>(stream);
+			Image<Rgba32> img = Image.Load<Rgba32>(stream);
 			//img.Mutate(x => x.Flip(FlipMode.Vertical));
 			var pxls = new byte[img.Width * img.Height * 4];
 			img.CopyPixelDataTo(pxls);
@@ -43,6 +41,12 @@ namespace Merux
 			//GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 		}
 
+		public static Texture2D FromPath(string path)
+		{
+			using (var stream = Merux.LoadStream(path))
+				return new Texture2D(stream);
+		}
+
 		public void Bind(TextureUnit unit = TextureUnit.Texture0)
 		{
 			GL.ActiveTexture(unit);
@@ -52,7 +56,6 @@ namespace Merux
 		public void Dispose()
 		{
 			GL.DeleteTexture(Handle);
-			GC.SuppressFinalize(this);
 		}
 	}
 }

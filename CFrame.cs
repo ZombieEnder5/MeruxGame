@@ -1,10 +1,5 @@
 ﻿using Merux.EnumTypes;
 using Merux.Mathematics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Merux
 {
@@ -155,12 +150,14 @@ namespace Merux
 			);
 		}
 
+		// VBRS success
 		public CFrame Inverse()
 		{
 			Matrix3 inv = _rotation.Inverse();
 			return new CFrame(inv * p, inv);
 		}
 
+		// this one is relatively simple compared to ToEulerAngles. who would've known.
 		public static CFrame FromEulerAngles(double rx, double ry, double rz, RotationOrder order)
 		{
 			double sx = Math.Sin(rx);
@@ -184,6 +181,8 @@ namespace Merux
 			throw new NotImplementedException("how did we even get here");
 		}
 
+		// you have no idea how much math and VBRS to get this right
+		// https://docs.google.com/document/d/1K29oLjsdRzlNjzkhIK9mUdZHgN0k5cQvJw8GyoeU5w4/edit?usp=sharing
 		public Vector3 ToEulerAngles(RotationOrder order)
 		{
 			double rx=0, ry=0, rz=0;
@@ -226,26 +225,33 @@ namespace Merux
 			return new Vector3(rx, ry, rz);
 		}
 
+		// using just common sense, you can figure out that ToEulerAnglesXYZ uses the ToEulerAngles function with rotation order XYZ
 		public Vector3 ToEulerAnglesXYZ()
 		{
 			return ToEulerAngles(RotationOrder.XYZ);
 		}
 
+		// as with ToEulerAnglesXYZ, same with ToEulerAnglesYXZ. except the rotation order is YXZ.
 		public Vector3 ToEulerAnglesYXZ()
 		{
 			return ToEulerAngles(RotationOrder.YXZ);
 		}
 
+		// https://roblox.fandom.com/wiki/CFrame
+		// "Creates a CFrame rotated around the three axes, relative to the CFrame, in X, Y, Z order using the angles (rx, ry, rz)."
+		// did VBRS, too. it's not lying.
 		public Vector3 ToOrientation()
 		{
 			return ToEulerAnglesYXZ();
 		}
 
+		// yadayadayada
 		public static CFrame FromEulerAnglesXYZ(double rx, double ry, double rz)
 		{
 			return FromEulerAngles(rx, ry, rz, RotationOrder.XYZ);
 		}
 
+		// yadayadayada YXZ
 		public static CFrame FromEulerAnglesYXZ(double rx, double ry, double rz)
 		{
 			return FromEulerAngles(rx, ry, rz, RotationOrder.YXZ);
@@ -261,11 +267,6 @@ namespace Merux
 			return new Matrix3(_rotation);
 		}
 
-		public OpenTK.Mathematics.Matrix4 GetTranslationMatrix()
-		{
-			return OpenTK.Mathematics.Matrix4.CreateTranslation(_realPosition.OpenTK());
-		}
-
 		public static CFrame FromNumericsMatrix(System.Numerics.Matrix4x4 mat)
 		{
 			return new(
@@ -277,6 +278,7 @@ namespace Merux
 			);
 		}
 
+		// row-major matrices are the bane of my existence.
 		public System.Numerics.Matrix4x4 ToNumericsMatrix()
 		{
 			return new(
@@ -287,6 +289,9 @@ namespace Merux
 			);
 		}
 
+		// I had to google this since I could not figure out how Roblox did it.
+		// https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+		// wikipedia is obviously not the best source, but it was one of the only good-ish ones
 		public static CFrame FromAxisAngle(Vector3 axis, double angle)
 		{
 			axis = axis.Unit;

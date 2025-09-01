@@ -50,7 +50,7 @@ namespace Merux
 
 		public static Shader FromPath(string path)
 		{
-			return Shader.FromPath(path + ".vert", path + ".frag");
+			return FromPath(path + ".vert", path + ".frag");
 		}
 
 		public void Use()
@@ -86,6 +86,12 @@ namespace Merux
 		{
 			int loc = GL.GetUniformLocation(Handle, name);
 			GL.Uniform3(loc, vec);
+		}
+
+		public void SetVector4(string name, Vector4 vec)
+		{
+			int loc = GL.GetUniformLocation(Handle, name);
+			GL.Uniform4(loc, vec);
 		}
 
 		private void assessProgramStatus()

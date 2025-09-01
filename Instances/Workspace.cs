@@ -50,12 +50,17 @@ namespace Merux.Instances
 			DescendantAdded += (_, o) =>
 			{
 				if (o is Part part)
+				{
+					if (part.rigidBody == null || part.rigidBody.IsDisposed)
+						part.setupRigidbody();
 					addRigidBody(part, part.rigidBody);
+				}
 			};
 		}
 
 		internal void addRigidBody(Part sender, RigidBody body)
 		{
+			Debug.Print(body);
 			rigidReference[body] = sender;
 			PhysWorld.AddRigidBody(body);
 		}

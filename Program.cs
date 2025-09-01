@@ -10,29 +10,70 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Merux
 {
-	class Merux : GameWindow
+	internal class MeruxWindow : GameWindow
 	{
-		float[] mVerts =
+		public MeruxWindow() : base(GameWindowSettings.Default, NativeWindowSettings.Default)
 		{
-			0f, 0f, 0f, 1f,
-			1f, 0f, 1f, 1f,
-			1f, 1f, 1f, 0f,
-			0f, 1f, 0f, 0f
-		};
-		uint[] mIdxs =
+			Image<Rgba32> iconImage;
+			using (Stream stream = Merux.LoadStream("Textures.favicon.png"))
+				iconImage = (Image<Rgba32>)SixLabors.ImageSharp.Image.Load(stream);
+			var iconBytes = new byte[iconImage.Width * iconImage.Height * 4];
+			iconImage.CopyPixelDataTo(iconBytes);
+			Icon = new OpenTK.Windowing.Common.Input.WindowIcon(new OpenTK.Windowing.Common.Input.Image(iconImage.Width, iconImage.Height, iconBytes));
+			if (SupportsRawMouseInput)
+				RawMouseInput = true;
+			Merux.window = this;
+		}
+
+		protected override void OnLoad()
 		{
-			0, 1, 2,
-			2, 3, 0
-		};
-		int mVAO, mVBO, mEBO;
-		Shader mShader;
-		Texture2D mTex;
-		Vector2 mousePos;
-		Vector2 lastMousePos;
-		private int _grabTimer = 0;
-		public int grabTimer { get { return _grabTimer; } private set { _grabTimer = value; } }
+			base.OnLoad();
+			Merux.OnLoad();
+		}
+
+		protected override void OnRenderFrame(FrameEventArgs args)
+		{
+			Merux.OnRenderFrame(args);
+			base.OnRenderFrame(args);
+		}
+
+		protected override void OnResize(ResizeEventArgs e)
+		{
+			Merux.OnResize(e);
+			base.OnResize(e);
+		}
+
+		protected override void OnUnload()
+		{
+			Merux.OnUnload();
+			base.OnUnload();
+		}
+
+		protected override void OnMouseDown(MouseButtonEventArgs e)
+		{
+			base.OnMouseDown(e);
+			Merux.OnMouseDown(e);
+		}
+
+		protected override void OnMouseUp(MouseButtonEventArgs e)
+		{
+			base.OnMouseUp(e);
+			Merux.OnMouseUp(e);
+		}
+	}
+
+	internal class Merux
+	{
+		static Vector2 mousePos;
+		static Vector2 lastMousePos;
+		static ScreenImage cursorIcon;
+		private static int _grabTimer = 0;
+		public static int grabTimer { get { return _grabTimer; } private set { _grabTimer = value; } }
 
 		internal static Assembly gameAssembly = Assembly.GetExecutingAssembly();
+
+		static public Game Game;
+		static public MeruxWindow window;
 
 		public static Stream LoadStream(string path)
 		{
@@ -40,62 +81,31 @@ namespace Merux
 				throw new NullReferenceException("how did we get here?");
 			Stream stream = gameAssembly.GetManifestResourceStream("Merux." + path);
 			if (stream == null)
-				throw new NullReferenceException($"THERE'S NO STREAM! AAAAAA!! THE GHOST OF {path}");
+				throw new NullReferenceException($"THERE'S NO STREAM! AAAAAA!! THE GHOST OF Merux.{path}");
 			return stream;
 		}
 
-		public Merux() : base(GameWindowSettings.Default, NativeWindowSettings.Default)
+		internal static void OnLoad()
 		{
-			Image<Rgba32> iconImage;
-			using (Stream stream = LoadStream("Textures.favicon.png"))
-				iconImage = (Image<Rgba32>)SixLabors.ImageSharp.Image.Load(stream);
-			var iconBytes = new byte[iconImage.Width * iconImage.Height * 4];
-			iconImage.CopyPixelDataTo(iconBytes);
-			Icon = new OpenTK.Windowing.Common.Input.WindowIcon(new OpenTK.Windowing.Common.Input.Image(iconImage.Width, iconImage.Height, iconBytes));
-			if (SupportsRawMouseInput)
-				RawMouseInput = true;
+			window.Title = "Merux";
+			window.CursorState = CursorState.Hidden;
+			using (var stream = LoadStream("Textures.cursor.png"))
+				cursorIcon = new ScreenImage(stream);
+			Game = new();
 		}
 
-		protected override void OnLoad()
-		{
-			base.OnLoad();
-			Title = "Merux";
-			Game.SetWindow(this);
-			CursorState = CursorState.Hidden;
-			mTex = new Texture2D("Textures.cursor.png");
-			mVAO = GL.GenVertexArray();
-			mVBO = GL.GenBuffer();
-			mEBO = GL.GenBuffer();
-			GL.BindVertexArray(mVAO);
-			GL.BindBuffer(BufferTarget.ArrayBuffer, mVBO);
-			GL.BufferData(BufferTarget.ArrayBuffer, mVerts.Length * sizeof(float), mVerts, BufferUsageHint.StaticDraw);
-			GL.BindBuffer(BufferTarget.ElementArrayBuffer, mEBO);
-			GL.BufferData(BufferTarget.ElementArrayBuffer, mIdxs.Length * sizeof(uint), mIdxs, BufferUsageHint.StaticDraw);
-			GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 0);
-			GL.EnableVertexAttribArray(0);
-			GL.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 4 * sizeof(float), 2 * sizeof(float));
-			GL.EnableVertexAttribArray(1);
-			mShader = Shader.FromPath("Shaders.Mouse");
-			Game.Start();
-		}
-
-		public Vector2 GetMousePosition()
+		public static Vector2 GetMousePosition()
 		{
 			return new Vector2(mousePos.X, mousePos.Y); // just to make sure nobody modifies it
 		}
 
-		protected override void OnRenderFrame(FrameEventArgs args)
+		internal static void OnRenderFrame(FrameEventArgs args)
 		{
-			Game.TickAndRender((float)args.Time, ClientSize);
-			int fbWidth, fbHeight;
-			unsafe
-			{
-				GLFW.GetFramebufferSize(WindowPtr, out fbWidth, out fbHeight);
-			}
-			if (!MouseState.IsButtonDown(MouseButton.Right))
+			Game.TickAndRender((float)args.Time, window.ClientSize);
+			if (!window.MouseState.IsButtonDown(MouseButton.Right))
 			{
 				lastMousePos = mousePos;
-				mousePos = new Vector2(MouseState.X, MouseState.Y);
+				mousePos = new Vector2(window.MouseState.X, window.MouseState.Y);
 				grabTimer = 0;
 			}
 			else
@@ -103,49 +113,40 @@ namespace Merux
 				mousePos = lastMousePos;
 				grabTimer += 1;
 			}
-			Debug.Print(MousePosition);
-			Vector2 mPos = new Vector2(mousePos.X, fbHeight - mousePos.Y);
-			mShader.Use();
-			mShader.SetVector2("uPos", mPos);
-			mShader.SetVector2("uSize", new Vector2(64, 64));
-			mShader.SetVector2("uScrSize", new Vector2(fbWidth, fbHeight));
-			mTex.Bind();
-			GL.BindVertexArray(mVAO);
-			GL.DrawElements(BeginMode.Triangles, 6, DrawElementsType.UnsignedInt, 0);
-			SwapBuffers();
-			base.OnRenderFrame(args);
+			var mPos = new Mathematics.GuiDim(0, 0, mousePos.X, mousePos.Y);
+			cursorIcon.Position = mPos;
+			GL.Disable(EnableCap.DepthTest);
+			cursorIcon.Render();
+			GL.Enable(EnableCap.DepthTest);
+			window.SwapBuffers();
 		}
 
-		protected override void OnUnload()
+		internal static void OnUnload()
 		{
-			mTex.Dispose();
+			cursorIcon.Dispose();
 			Game.Dispose();
-			base.OnUnload();
 		}
 
-		protected override void OnResize(ResizeEventArgs e)
+		internal static void OnResize(ResizeEventArgs e)
 		{
-			base.OnResize(e);
 			int fbWidth, fbHeight;
 			unsafe
 			{
-				GLFW.GetFramebufferSize(WindowPtr, out fbWidth, out fbHeight);
+				GLFW.GetFramebufferSize(window.WindowPtr, out fbWidth, out fbHeight);
 			}
 			GL.Viewport(0, 0, fbWidth, fbHeight);
 		}
 
-		protected override void OnMouseDown(MouseButtonEventArgs e)
+		internal static void OnMouseDown(MouseButtonEventArgs e)
 		{
-			base.OnMouseDown(e);
 			if (e.Button == MouseButton.Right)
-				CursorState = CursorState.Grabbed;
+				window.CursorState = CursorState.Grabbed;
 		}
 
-		protected override void OnMouseUp(MouseButtonEventArgs e)
+		internal static void OnMouseUp(MouseButtonEventArgs e)
 		{
-			base.OnMouseUp(e);
 			if (e.Button == MouseButton.Right)
-				CursorState = CursorState.Hidden;
+				window.CursorState = CursorState.Hidden;
 		}
 	}
 
@@ -153,7 +154,7 @@ namespace Merux
 	{
 		static void Main()
 		{
-			using var game = new Merux();
+			using var game = new MeruxWindow();
 			game.Run();
 		}
 	}

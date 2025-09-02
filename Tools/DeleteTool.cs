@@ -11,30 +11,53 @@ namespace Merux.Tools
 {
 	internal class DeleteTool : ToolScript
 	{
-		RayHit? hit;
+		private RayHit? hit;
+		private Part? last = null;
+		private bool equipped = false;
 
 		public override string GetIconPath()
 		{
 			return "Textures.deleteIcon.png";
 		}
 
-		public override void Equip()
+		protected override void onEquip()
 		{
-			base.Equip();
+			base.onEquip();
+			equipped = true;
+			Merux.Game.MouseIcon = TextureSystem.GetTexture("Textures.cursor.trash.png");
 		}
 
-		public override void Unequip()
+		protected override void onUnequip()
 		{
-			base.Unequip();
+			base.onUnequip();
+			equipped = false;
+			last = null;
+			if (hit.HasValue)
+				hit.Value.part.BorderColor = new Vector3(0, 0, 0);
+			Merux.Game.MouseIcon = TextureSystem.GetTexture("Textures.cursor.pointer.png");
 		}
 
 		public override void Tick(float deltaTime)
 		{
 			base.Tick(deltaTime);
+			if (!equipped) return;
 			hit = Merux.Game.GetMouseHit();
+			if (hit.HasValue)
+			{
+				if (last == null && !hit.Value.part.Locked)
+					hit.Value.part.BorderColor = new Vector3(1, 0, 0);
+				else if (last != null && hit.Value.part != last)
+				{
+					last.BorderColor = Vector3.Zero;
+					if (!hit.Value.part.Locked)
+						hit.Value.part.BorderColor = new Vector3(1, 0, 0);
+				}
+				last = hit.Value.part;
+			} else if (last != null)
+				last.BorderColor = Vector3.Zero;
 		}
 
-		public override void Activate()
+		protected override void activate()
 		{
 			if (!hit.HasValue) return;
 			var contact = hit.Value;

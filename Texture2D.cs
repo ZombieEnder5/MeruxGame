@@ -17,28 +17,52 @@ namespace Merux
 		{
 			Image<Rgba32> img = Image.Load<Rgba32>(stream);
 			//img.Mutate(x => x.Flip(FlipMode.Vertical));
-			var pxls = new byte[img.Width * img.Height * 4];
+			int w = img.Width;
+			int h = img.Height;
+			var pxls = new byte[w * h * 4];
 			img.CopyPixelDataTo(pxls);
 			Handle = GL.GenTexture();
-			Size = new Vector2(img.Size.Width, img.Size.Height);
+			Size = new Vector2(w, h);
 			GL.BindTexture(TextureTarget.Texture2D, Handle);
 			GL.TexImage2D(
 				TextureTarget.Texture2D,
 				0,
 				PixelInternalFormat.Rgba,
-				img.Width,
-				img.Height,
+				w,
+				h,
 				0,
 				PixelFormat.Rgba,
 				PixelType.UnsignedByte,
 				pxls
 				);
-			img.Dispose();
 			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
 			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
 			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
 			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+			img.Dispose();
 			//GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+		}
+
+		public Texture2D(IntPtr ptr, int w, int h)
+		{
+			Handle = GL.GenTexture();
+			Size = new Vector2(w, h);
+			GL.BindTexture(TextureTarget.Texture2D, Handle);
+			GL.TexImage2D(
+				TextureTarget.Texture2D,
+				0,
+				PixelInternalFormat.Rgba,
+				w,
+				h,
+				0,
+				PixelFormat.Rgba,
+				PixelType.UnsignedByte,
+				ptr
+				);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 		}
 
 		public static Texture2D FromPath(string path)

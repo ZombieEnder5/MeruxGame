@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Merux.Instances;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -189,6 +190,11 @@ namespace Merux.Mathematics
 				v.X,
 				v.Y
 			);
+		}
+
+		public override string ToString()
+		{
+			return $"{X}, {Y}";
 		}
 	}
 
@@ -658,6 +664,35 @@ namespace Merux.Mathematics
 		public override string ToString()
 		{
 			return $"{m00}, {m01}, {m02}, {m10}, {m11}, {m12}, {m20}, {m21}, {m22}";
+		}
+	}
+
+	public class MathUtil
+	{
+		public static List<Vector3> GetPartFaceWorldNormals(Part part)
+		{
+			return new()
+			{
+				part.CFrame.XVector,
+				-part.CFrame.XVector,
+				part.CFrame.YVector,
+				-part.CFrame.YVector,
+				part.CFrame.ZVector,
+				-part.CFrame.ZVector,
+			};
+		}
+
+		public static List<(Vector3, Vector3)> GetPartFaceNormalPairs(Part part)
+		{
+			return new()
+			{
+				(part.CFrame.XVector, Vector3.XAxis),
+				(-part.CFrame.XVector, -Vector3.XAxis),
+				(part.CFrame.YVector, Vector3.YAxis),
+				(-part.CFrame.YVector, -Vector3.YAxis),
+				(part.CFrame.ZVector, Vector3.ZAxis),
+				(-part.CFrame.ZVector, -Vector3.ZAxis),
+			};
 		}
 	}
 }

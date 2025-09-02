@@ -41,7 +41,6 @@ namespace Merux.Instances
 			{
 				Gravity = new(0f, -50f, 0f)
 			};
-			Debug.Print("PHYSWORLD", PhysWorld);
 			DescendantRemoving += (_, o) =>
 			{
 				if (o is Part part)
@@ -60,7 +59,6 @@ namespace Merux.Instances
 
 		internal void addRigidBody(Part sender, RigidBody body)
 		{
-			Debug.Print(body);
 			rigidReference[body] = sender;
 			PhysWorld.AddRigidBody(body);
 		}

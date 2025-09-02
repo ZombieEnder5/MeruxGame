@@ -6,11 +6,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Merux
+namespace Merux.Instances
 {
-	internal class ScreenImage : IDisposable
+	internal class ScreenImage : Instance, IRenderable
 	{
-		Shader IMAGE_SHADER = Shader.FromPath("Shaders.Image");
+		internal static readonly Shader IMAGE_SHADER = Shader.FromPath("Shaders.Image");
 
 		float[] QUAD_VERTS =
 		{
@@ -26,21 +26,21 @@ namespace Merux
 			2, 3, 0
 		};
 
-		Texture2D texture;
+		public Texture2D? Texture = null;
 		int VAO, VBO, EBO;
 
-		public Vector2 AnchorPoint = new Vector2(0.5, 0.5);
+		public Vector2 AnchorPoint = new Vector2(0, 0);
 		public GuiDim Position = new GuiDim(0, 0, 0, 0);
 		public Vector2 Size = new Vector2(64, 64);
 
 		public float TintAlpha = 0f;
 		public Vector3 TintColor = new Vector3(0, 0, 0);
 
-		public ScreenImage(Stream stream)
-		{
-			texture = new Texture2D(stream);
-			Debug.Print(texture.Handle);
+		public Vector3 BackgroundColor = new Vector3(0, 0, 0);
+		public float BackgroundTransparency = 1f;
 
+		public ScreenImage()
+		{
 			VAO = GL.GenVertexArray();
 			VBO = GL.GenBuffer();
 			EBO = GL.GenBuffer();
@@ -62,10 +62,12 @@ namespace Merux
 
 		public void Render()
 		{
+			if (Texture == null) return;
+
 			var ScrSize = Merux.Game.windowExtents;
 			var p = (Position.Offset + Position.Window * ScrSize - AnchorPoint * Size).OpenTK();
 
-			texture.Bind();
+			Texture.Bind();
 
 			IMAGE_SHADER.Use();
 			IMAGE_SHADER.SetVector2("uPos", p);
@@ -76,6 +78,9 @@ namespace Merux
 			IMAGE_SHADER.SetFloat("uTintAlpha", TintAlpha);
 			IMAGE_SHADER.SetVector3("uTintColor", TintColor.OpenTK());
 
+			IMAGE_SHADER.SetFloat("uBackAlpha", 1f - BackgroundTransparency);
+			IMAGE_SHADER.SetVector3("uBackColor", BackgroundColor.OpenTK());
+
 			GL.Disable(EnableCap.CullFace);
 
 			GL.BindVertexArray(VAO);
@@ -84,12 +89,21 @@ namespace Merux
 			GL.Enable(EnableCap.CullFace);
 		}
 
-		public void Dispose()
+		public bool IsPositionHovering(Vector2 pos)
 		{
-			texture.Dispose();
+			var ScrSize = Merux.Game.windowExtents;
+			Vector2 center = Position.Offset + Position.Window * ScrSize + (Vector2.One * .5 - AnchorPoint) * Size;
+			Vector2 min = center - Size * .5;
+			Vector2 max = center + Size * .5;
+			return min.X < pos.X && pos.X < max.X && min.Y < pos.Y && pos.Y < max.Y;
+		}
+
+		public override void Dispose()
+		{
 			GL.DeleteVertexArray(VAO);
 			GL.DeleteBuffer(VBO);
 			GL.DeleteBuffer(EBO);
+			base.Dispose();
 		}
 	}
 }

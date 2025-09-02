@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<OutputType>Exe</OutputType>
+	<OutputType>WinExe</OutputType>
 	<TargetFramework>net6.0</TargetFramework>
 	<RootNamespace>Merux</RootNamespace>
 	<ImplicitUsings>enable</ImplicitUsings>
@@ -47,6 +47,9 @@
     <Content Remove="Shaders\Text.vert" />
     <Content Remove="Textures\createIcon.png" />
     <Content Remove="Textures\cursor.png" />
+    <Content Remove="Textures\cursor\click.png" />
+    <Content Remove="Textures\cursor\pointer.png" />
+    <Content Remove="Textures\cursor\trash.png" />
     <Content Remove="Textures\deleteIcon.png" />
     <Content Remove="Textures\favicon.png" />
     <Content Remove="Textures\helptext.png" />
@@ -73,9 +76,17 @@
     <None Remove="shaders\Sky.vert" />
     <None Remove="shaders\Text.frag" />
     <None Remove="shaders\Text.vert" />
+    <None Remove="Sounds\beam.wav" />
     <None Remove="Sounds\click.wav" />
     <None Remove="Sounds\destroy.wav" />
     <None Remove="Sounds\put.wav" />
+    <None Remove="WebThings\help.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="WebThings\help.html">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -89,11 +100,14 @@
     <EmbeddedResource Include="Shaders\Sky.vert" />
     <EmbeddedResource Include="Shaders\Text.frag" />
     <EmbeddedResource Include="Shaders\Text.vert" />
+    <EmbeddedResource Include="Sounds\beam.wav" />
     <EmbeddedResource Include="Sounds\click.wav" />
     <EmbeddedResource Include="Sounds\destroy.wav" />
     <EmbeddedResource Include="Sounds\put.wav" />
     <EmbeddedResource Include="Textures\createIcon.png" />
-    <EmbeddedResource Include="Textures\cursor.png" />
+    <EmbeddedResource Include="Textures\cursor\click.png" />
+    <EmbeddedResource Include="Textures\cursor\pointer.png" />
+    <EmbeddedResource Include="Textures\cursor\trash.png" />
     <EmbeddedResource Include="Textures\deleteIcon.png" />
     <EmbeddedResource Include="Textures\favicon.png" />
     <EmbeddedResource Include="Textures\helptext.png" />

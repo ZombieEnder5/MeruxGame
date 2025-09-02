@@ -11,7 +11,7 @@ using BulletSharp.SoftBody;
 
 namespace Merux.Instances
 {
-	public class Part : Instance
+	public class Part : Instance, IRenderable
 	{
 		protected static int MAX_GJK_ITER = 20;
 		private static float DEG_TO_RAD = 0.01745329252f;
@@ -204,6 +204,8 @@ namespace Merux.Instances
 			}
 		}
 
+		public Vector3 BorderColor = Vector3.Zero;
+
 		internal RigidBody rigidBody;
 		MotionState motionState;
 
@@ -258,9 +260,10 @@ namespace Merux.Instances
 			disposeRigidbody();
 		}
 
-		public void Render(OpenTK.Mathematics.Matrix4 view, OpenTK.Mathematics.Matrix4 projection)
+		public void Render()
 		{
-			Debug.Print("heya",Name,Position);
+			OpenTK.Mathematics.Matrix4 view = Merux.Game.tempViewMatrix;
+			OpenTK.Mathematics.Matrix4 projection = Merux.Game.tempProjectionMatrix;
 			OpenTK.Mathematics.Matrix4 model =
 				OpenTK.Mathematics.Matrix4.CreateScale(Size.OpenTK()) *
 				new OpenTK.Mathematics.Matrix4(CFrame.GetRotationMatrix().OpenTK().Inverted()) *
@@ -280,6 +283,7 @@ namespace Merux.Instances
 			texture.Bind();
 			shader.SetInt("atlas", 0);
 			shader.SetVector3("baseColor", Color.OpenTK());
+			shader.SetVector3("borderColor", BorderColor.OpenTK());
 			shader.SetFloat("transparency", Transparency);
 			shader.SetVector2("textureSize", texture.Size);
 
@@ -314,15 +318,12 @@ namespace Merux.Instances
 			{
 				if (dirtyFlagSet(COLLIDE_DIRTY))
 				{
-					Debug.Print(CanCollide);
 					if (!CanCollide && !rigidBody.IsDisposed)
 					{
-						Debug.Print("A");
 						disposeRigidbody();
 					}
 					else if (!rigidBody.IsDisposed)
 					{
-						Debug.Print("B");
 						setupRigidbody();
 						if (IsDescendantOf(Merux.Game.Workspace))
 							Merux.Game.Workspace.addRigidBody(this, rigidBody);

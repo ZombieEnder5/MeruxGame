@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp;
 using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
+using Merux.Instances;
 
 namespace Merux
 {
@@ -89,8 +90,12 @@ namespace Merux
 		{
 			window.Title = "Merux";
 			window.CursorState = CursorState.Hidden;
-			using (var stream = LoadStream("Textures.cursor.png"))
-				cursorIcon = new ScreenImage(stream);
+			cursorIcon = new ScreenImage()
+			{
+				Texture = TextureSystem.GetTexture("Textures.cursor.pointer.png"),
+				AnchorPoint = Mathematics.Vector2.One * .5,
+				BackgroundTransparency = 1f,
+			};
 			Game = new();
 		}
 
@@ -101,6 +106,8 @@ namespace Merux
 
 		internal static void OnRenderFrame(FrameEventArgs args)
 		{
+			if (!Game.loaded)
+				Game.Load();
 			Game.TickAndRender((float)args.Time, window.ClientSize);
 			if (!window.MouseState.IsButtonDown(MouseButton.Right))
 			{
@@ -115,6 +122,7 @@ namespace Merux
 			}
 			var mPos = new Mathematics.GuiDim(0, 0, mousePos.X, mousePos.Y);
 			cursorIcon.Position = mPos;
+			cursorIcon.Texture = Game.GetMouseIcon();
 			GL.Disable(EnableCap.DepthTest);
 			cursorIcon.Render();
 			GL.Enable(EnableCap.DepthTest);

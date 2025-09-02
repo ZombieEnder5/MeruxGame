@@ -14,6 +14,8 @@ using OpenTK.Audio.OpenAL;
 using System.Runtime.InteropServices;
 using static OpenTK.Graphics.OpenGL.GL;
 using Merux.Tools;
+using System.IO;
+using System.Diagnostics;
 
 /*
  * before I start, I'd like to admit shamefully that I did use ChatGPT for some parts of the code in this project.
@@ -26,7 +28,7 @@ using Merux.Tools;
 namespace Merux
 {
 
-    public class Game : Instance
+	public class Game : Instance
 	{
 		public Workspace Workspace = new Workspace();
 		public static Shader SHADER_PART = Shader.FromPath("Shaders.Part");
@@ -39,6 +41,7 @@ namespace Merux
 		public bool hovering = false;
 
 		private bool debounce = false;
+		internal bool loaded = false;
 
 		public int PUT_SND_SRC;
 		public int DST_SND_SRC;
@@ -47,22 +50,25 @@ namespace Merux
 		public event Action? MouseLeftClickEvent;
 		public event Action? MouseLeftReleaseEvent;
 
-		readonly internal TextRenderer rend;
+		ScreenButton helpButton;
 
-		static readonly int TOOL_ICON_SIZE = 200;
+		public Texture2D? MouseIcon = TextureSystem.GetTexture("Textures.cursor.pointer.png");
+		Texture2D? sysMouseIcon = null;
 
-		ScreenImage helpText = new ScreenImage(Merux.LoadStream("Textures.helptext.png"))
-		{
-			Position = new GuiDim(1, 1, 0, 0),
-			AnchorPoint = new Vector2(1, 1),
-			Size = new Vector2(512, 64)
-		};
+		internal ScreenImage? guiHovering = null;
 
-		ToolScript[] tools;
-		Dictionary<ToolScript, ScreenImage> toolIcons = new();
-		int toolMode = 0;
-		int lastToolMode = -1;
+		public static readonly int TOOL_ICON_SIZE = 200;
 
+		readonly internal TextRenderer textRenderer48;
+		readonly internal TextRenderer textRenderer24;
+
+		internal List<ToolScript> tools = new();
+		internal ToolScript? toolEquipped = null;
+
+		internal OpenTK.Mathematics.Matrix4 tempViewMatrix;
+		internal OpenTK.Mathematics.Matrix4 tempProjectionMatrix;
+
+		bool isMouseHitCached = false;
 		RayHit? mouseHitCache = null;
 
 		protected static Cubemap skyCube = new Cubemap(new string[] {
@@ -90,38 +96,47 @@ namespace Merux
 
 		internal Game()
 		{
-			tools = new ToolScript[]
-			{
-				Create<CreateTool>(Workspace),
-				Create<DeleteTool>(Workspace),
-			};
+			textRenderer24 = new("Fonts.meruxfont.ttf", 24f);
+			textRenderer48 = new("Fonts.meruxfont.ttf", 48f);
+		}
 
-			for (int i = 0; i < tools.Length; i++)
+		internal void Load()
+		{
+			loaded = true;
+			tools.Add(Create<CreateTool>(Workspace));
+			tools.Add(Create<DeleteTool>(Workspace));
+
+			helpButton = textRenderer24.RenderScreenImage<ScreenButton>("Help", 0, 64, 5, new Vector3(0,0,0));
+			helpButton.Parent = Workspace;
+			helpButton.BackgroundColor = new Vector3(.8, .8, .8);
+			helpButton.BackgroundTransparency = 0f;
+
+			helpButton.OnLeftRelease += () =>
 			{
-				var tool = tools[i];
-				using (var stream = Merux.LoadStream(tool.GetIconPath()))
+				string path = Path.Combine(Path.GetTempPath(), "temp_page.html");
+				using (var stream = Merux.LoadStream("WebThings.help.html"))
 				{
-					ScreenImage icon = new(stream);
-					icon.Size = Vector2.One * TOOL_ICON_SIZE;
-					icon.Position = new GuiDim(0, 1, TOOL_ICON_SIZE * i, 0);
-					icon.AnchorPoint = new Vector2(0, 1);
-					toolIcons[tool] = icon;
+					using (var file = File.Create(path))
+						stream.CopyTo(file);
 				}
-			}
-
-			using (var stream = Merux.LoadStream("Fonts.meruxfont.ttf"))
-			{
-				//var buffer = new byte[(int)stream.Length];
-				//stream.Read(buffer, 0, buffer.Length);
-				rend = new(stream);
-			}
+				Process.Start(new ProcessStartInfo
+				{
+					FileName = path,
+					UseShellExecute = true,
+				});
+				Task.Run(async () =>
+				{
+					await Task.Delay(10000);
+					try { File.Delete(path); } catch { }
+				});
+			};
 
 			ALDevice sdev = ALC.OpenDevice(null);
 			ALContext ctx = ALC.CreateContext(sdev, (int[]?)null);
 			ALC.MakeContextCurrent(ctx);
 			int sbuf1 = BufferFromWaveform(Merux.LoadStream("Sounds.put.wav"));
 			int sbuf2 = BufferFromWaveform(Merux.LoadStream("Sounds.click.wav"));
-			int sbuf3 = BufferFromWaveform(Merux.LoadStream("Sounds.destroy.wav"));
+			int sbuf3 = BufferFromWaveform(Merux.LoadStream("Sounds.beam.wav"));
 			PUT_SND_SRC = AL.GenSource();
 			CLK_SND_SRC = AL.GenSource();
 			DST_SND_SRC = AL.GenSource();
@@ -135,44 +150,49 @@ namespace Merux
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
 			mainCamera.Parent = Workspace;
-			selector = Instance.Create<Part>(Workspace);
+			selector = Create<Part>(Workspace);
 			selector.CanCollide = false;
 			selector.Color = new(0, 1, 1);
 			selector.Size = new(4, 1, 2);
 			selector.Anchored = true;
-			selector.Transparency = 0.5f;
+			selector.Transparency = 1f;
 			selector.Name = "selector";
-			Part baseplate = Instance.Create<Part>(Workspace);
+			Part baseplate = Create<Part>(Workspace);
 			baseplate.Size = new Vector3(64f, 10f, 64f);
 			baseplate.Position = new Vector3(0f, -5f, 0f);
 			baseplate.Anchored = true;
 			baseplate.Name = "Baseplate I";
 			baseplate.Locked = true;
-			Part baseplate2 = Instance.Create<Part>(Workspace);
+			Part baseplate2 = Create<Part>(Workspace);
 			baseplate2.Size = new Vector3(64f, 32f, 4f);
 			baseplate2.Position = new Vector3(0f, -5f, 34f);
 			baseplate2.Anchored = true;
 			baseplate2.Name = "Baseplate II";
 			baseplate2.Locked = true;
-			Part baseplate3 = Instance.Create<Part>(Workspace);
+			Part baseplate3 = Create<Part>(Workspace);
 			baseplate3.Size = new Vector3(64f, 32f, 4f);
 			baseplate3.Position = new Vector3(0f, -5f, -34f);
 			baseplate3.Anchored = true;
 			baseplate3.Name = "Baseplate III";
 			baseplate3.Locked = true;
-			Part baseplate4 = Instance.Create<Part>(Workspace);
+			Part baseplate4 = Create<Part>(Workspace);
 			baseplate4.Size = new Vector3(4f, 32f, 64f);
 			baseplate4.Position = new Vector3(34f, -5f, 0f);
 			baseplate4.Anchored = true;
 			baseplate4.Name = "Baseplate IV";
 			baseplate4.Locked = true;
-			Part baseplate5 = Instance.Create<Part>(Workspace);
+			Part baseplate5 = Create<Part>(Workspace);
 			baseplate5.Size = new Vector3(4f, 32f, 64f);
 			baseplate5.Position = new Vector3(-34f, -5f, 0f);
 			baseplate5.Anchored = true;
 			baseplate5.Name = "Baseplate V";
 			baseplate5.Locked = true;
 			mainCamera.SetLook(new Vector3(1, 0, 0));
+		}
+
+		public Texture2D? GetMouseIcon()
+		{
+			return sysMouseIcon != null ? sysMouseIcon : MouseIcon;
 		}
 
 		internal static int BufferFromWaveform(Stream stream)
@@ -193,26 +213,51 @@ namespace Merux
 
 		public RayHit? GetMouseHit()
 		{
-			if (mouseHitCache.HasValue) return mouseHitCache;
-			float ratio = (float)windowExtents.X / (float)windowExtents.Y;
+			if (!isMouseHitCached)
+			{
+				isMouseHitCached = true;
+				float ratio = (float)windowExtents.X / (float)windowExtents.Y;
 
-			var mpos = Merux.GetMousePosition();
-			double vx = 2.0 * mpos.X / windowExtents.X - 1.0;
-			double vy = 1.0 - 2.0 * mpos.Y / windowExtents.Y;
+				var mpos = Merux.GetMousePosition();
+				double vx = 2.0 * mpos.X / windowExtents.X - 1.0;
+				double vy = 1.0 - 2.0 * mpos.Y / windowExtents.Y;
 
-			double tanHY = Math.Tan(mainCamera.FieldOfView * .5);
-			double tanHX = tanHY * ratio;
+				double tanHY = Math.Tan(mainCamera.FieldOfView * .5);
+				double tanHX = tanHY * ratio;
 
-			var localDir = new Vector3(vx * tanHX, vy * tanHY, -1).Unit;
-			hovering = Workspace.Raycast(mainCamera.CFrame.p, mainCamera.CFrame.Rotation * localDir * 100_000, out RayHit contact);
-			if (hovering)
-				return contact;
-			return null;
+				var localDir = new Vector3(vx * tanHX, vy * tanHY, -1).Unit;
+				hovering = Workspace.Raycast(mainCamera.CFrame.p, mainCamera.CFrame.Rotation * localDir * 100_000, out RayHit contact);
+				mouseHitCache = hovering ? contact : null;
+			}
+			return mouseHitCache;
+		}
+
+		public void ToggleTool(ToolScript? tool)
+		{
+			if (toolEquipped == tool)
+				UnequipTool();
+			else
+				EquipTool(tool);
+		}
+
+		public void EquipTool(ToolScript? tool)
+		{
+			UnequipTool();
+			toolEquipped = tool;
+			tool?.invokeEquip();
+		}
+
+		public void UnequipTool()
+		{
+			toolEquipped?.invokeUnequip();
+			toolEquipped = null;
 		}
 
 		public void TickAndRender(float deltaTime, OpenTK.Mathematics.Vector2i winSize)
 		{
-			mouseHitCache = null;
+			isMouseHitCached = false;
+
+			tools = Workspace.GetDescendantsOfClass<ToolScript>();
 
 			Time += deltaTime;
 			var mouse = Merux.window.MouseState;
@@ -225,36 +270,23 @@ namespace Merux
 				}
 			}
 			if (Merux.window.KeyboardState.IsKeyPressed(Keys.D1))
-				toolMode = 0;
+				ToggleTool(tools[0]);
 			else if(Merux.window.KeyboardState.IsKeyPressed(Keys.D2))
-				toolMode = 1;
+				ToggleTool(tools[1]);
 			if (mouse.ScrollDelta.Y > 0)
 				mainCamera.ZoomIn(CLK_SND_SRC);
 			else if (mouse.ScrollDelta.Y < 0)
 				mainCamera.ZoomOut(CLK_SND_SRC);
 
-			var view =
+			tempViewMatrix =
 				OpenTK.Mathematics.Matrix4.CreateTranslation(-mainCamera.CFrame.p.OpenTK())
 				* new OpenTK.Mathematics.Matrix4(mainCamera.CFrame.GetRotationMatrix().OpenTK());
 			float ratio = (float)windowExtents.X / (float)windowExtents.Y;
 			float near = 0.1f;
 			float far = 10000f;
-			var projection = OpenTK.Mathematics.Matrix4.CreatePerspectiveFieldOfView(mainCamera.FieldOfView, ratio, near, far);
+			tempProjectionMatrix = OpenTK.Mathematics.Matrix4.CreatePerspectiveFieldOfView(mainCamera.FieldOfView, ratio, near, far);
 
-			if (lastToolMode != toolMode)
-			{
-				if (lastToolMode > -1)
-				{
-					var last = tools[lastToolMode];
-					last.Unequip();
-				}
-				if (toolMode > -1)
-				{
-					var equipping = tools[toolMode];
-					equipping.Equip();
-				}
-				lastToolMode = toolMode;
-			}
+			Workspace.Tick(deltaTime);
 
 			bool leftMBDown = mouse.IsButtonDown(MouseButton.Left);
 			if (leftMBDown ^ debounce)
@@ -266,13 +298,12 @@ namespace Merux
 					MouseLeftReleaseEvent?.Invoke();
 			}
 
-			Workspace.Tick(deltaTime);
 			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 			GL.DepthFunc(DepthFunction.Lequal);
 			GL.Disable(EnableCap.CullFace);
 			SHADER_SKY.Use();
-			SHADER_SKY.SetMatrix4("uView", view);
-			SHADER_SKY.SetMatrix4("uProj", projection);
+			SHADER_SKY.SetMatrix4("uView", tempViewMatrix);
+			SHADER_SKY.SetMatrix4("uProj", tempProjectionMatrix);
 			GL.BindVertexArray(Mesh.CubeMesh.VAO);
 			skyCube.Bind();
 			GL.DrawElements(PrimitiveType.Triangles, Mesh.CubeMesh.IndexCount, DrawElementsType.UnsignedShort, 0);
@@ -282,31 +313,43 @@ namespace Merux
 			var opaque = list.Where(p => p.Transparency <= 0f);
 			var transparent = list.Where(p => p.Transparency > 0f).OrderByDescending(p => (p.Position - mainCamera.CFrame.p).MagnitudeSqr);
 			foreach (Part part in opaque)
-				part.Render(view, projection);
+				part.Render();
 			if (transparent.Count() > 0)
 			{
 				GL.DepthMask(false);
 				foreach (Part part in transparent)
-					part.Render(view, projection);
+					part.Render();
 				GL.DepthMask(true);
 			}
 
-			helpText.Render();
-
-			for(int i = 0; i < tools.Length; i++)
+			Vector2 mp = Vector2.FromOpenTK(Merux.GetMousePosition());
+			guiHovering = null;
+			foreach (var img in Workspace.GetDescendantsOfClass<ScreenImage>())
 			{
-				var tool = tools[i];
-				var icon = toolIcons[tool];
-				icon.TintAlpha = i == toolMode ? 0f : 0.2f;
-				icon.Render();
+				img.Render();
+				if (guiHovering != null) continue;
+				if (!(img is ScreenButton button)) continue;
+				if (button.IsPositionHovering(mp))
+				{
+					guiHovering = button;
+				}
 			}
+			
+			if (guiHovering != null)
+				sysMouseIcon = TextureSystem.GetTexture("Textures.cursor.click.png");
+			else
+				sysMouseIcon = null;
 		}
 
 		public override void Dispose()
 		{
-			helpText.Dispose();
 			skyCube.Dispose();
 			base.Dispose();
+		}
+
+		public int GetToolCount()
+		{
+			return tools.Count;
 		}
 
 		internal T EpsilonMaxBy<T>(T[] values, Func<T, double> selectFunc, double epsilon)
@@ -324,6 +367,11 @@ namespace Merux
 					}
 				}
 			return best;
+		}
+
+		public bool HoveringOverGui()
+		{
+			return guiHovering != null;
 		}
 	}
 }

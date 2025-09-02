@@ -74,7 +74,6 @@ namespace Merux
 				min = new Vector3(MathF.Min(min.X, v.X), MathF.Min(min.Y, v.Y), MathF.Min(min.Z, v.Z));
 				max = new Vector3(MathF.Max(max.X, v.X), MathF.Max(max.Y, v.Y), MathF.Max(max.Z, v.Z));
 			}
-			Debug.Print($"[Mesh Bounds] Min: {min}, Max: {max}");
 
 			var norm = prim.GetVertexAccessor("NORMAL").AsVector3Array().ToArray();
 			var uv = prim.GetVertexAccessor("TEXCOORD_0").AsVector2Array().ToArray();

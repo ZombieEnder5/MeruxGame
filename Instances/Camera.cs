@@ -11,7 +11,7 @@ namespace Merux.Instances
     public class Camera : Instance
     {
         static double ZOOM_STEP = 5.0;
-        public CFrame CFrame = CFrame.Identity;
+        public QVector CFrame = QVector.Identity;
         Vector3 look = Vector3.Zero;
         Vector3 origin = Vector3.Zero;
         double zoom = 10.0;
@@ -45,7 +45,7 @@ namespace Merux.Instances
         public override void Tick(float deltaTime)
         {
             base.Tick(deltaTime);
-            CFrame = CFrame.FromEulerAnglesYXZ(look.X, look.Y, 0.0);
+            CFrame = QVector.FromEulerAnglesYXZ(look.X, look.Y, 0.0);
             CFrame += CFrame.ZVector * zoom + origin;
             CFrame.Orthonormalize();
         }

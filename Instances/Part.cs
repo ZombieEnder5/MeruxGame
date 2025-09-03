@@ -61,12 +61,12 @@ namespace Merux.Instances
 		});
 		protected Mesh mesh = Mesh.CubeMesh;
 
-		protected CFrame realCFrame = CFrame.Identity;
-		public CFrame CFrame
+		protected QVector realCFrame = QVector.Identity;
+		public QVector CFrame
 		{
 			get
 			{
-				return new CFrame(realCFrame);
+				return new QVector(realCFrame);
 			}
 			set
 			{
@@ -95,7 +95,7 @@ namespace Merux.Instances
 			set
 			{
 				value *= DEG_TO_RAD;
-				realCFrame = CFrame.FromEulerAnglesXYZ(value.X, value.Y, value.Z) + realCFrame.p;
+				realCFrame = QVector.FromEulerAnglesXYZ(value.X, value.Y, value.Z) + realCFrame.p;
 				dirty |= CFRAME_DIRTY;
 			}
 		}
@@ -108,7 +108,7 @@ namespace Merux.Instances
 			set
 			{
 				value *= DEG_TO_RAD;
-				realCFrame = CFrame.FromOrientation(value.X, value.Y, value.Z) + realCFrame.p;
+				realCFrame = QVector.FromOrientation(value.X, value.Y, value.Z) + realCFrame.p;
 				dirty |= CFRAME_DIRTY;
 			}
 		}
@@ -300,7 +300,7 @@ namespace Merux.Instances
 		private void keepMeSafe()
 		{
 			if (Vector3HasNaN(CFrame.XVector) || Vector3HasNaN(CFrame.YVector) || Vector3HasNaN(CFrame.ZVector))
-				CFrame = CFrame.Identity + Position;
+				CFrame = QVector.Identity + Position;
 			if (Vector3HasNaN(AngularVelocity))
 				AngularVelocity = new Vector3(0, 0, 0);
 			if (Vector3HasNaN(Velocity))
@@ -358,7 +358,7 @@ namespace Merux.Instances
 						rigidBody.SetMassProps((float)Mass, localInertia);
 					}
 				}
-				realCFrame = CFrame.FromNumericsMatrix(rigidBody.WorldTransform);
+				realCFrame = QVector.FromNumericsMatrix(rigidBody.WorldTransform);
 			}
 			dirty = 0;
 		}

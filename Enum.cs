@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Merux.EnumTypes
 {
-	public enum NormalId
+	public enum BoxFace
 	{
 		Right = 0,
 		Left = 1,
@@ -15,7 +15,7 @@ namespace Merux.EnumTypes
 		Back = 4,
 		Front = 5,
 	}
-	public enum RotationOrder
+	public enum EulerOrder
 	{
 		XYZ = 0,
 		XZY = 1,

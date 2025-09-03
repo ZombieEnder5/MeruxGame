@@ -8,6 +8,9 @@ using SixLabors.ImageSharp;
 using System.Reflection;
 using System.Diagnostics.CodeAnalysis;
 using Merux.Instances;
+using System.Runtime.CompilerServices;
+using System;
+using System.Windows;
 
 namespace Merux
 {
@@ -162,6 +165,29 @@ namespace Merux
 	{
 		static void Main()
 		{
+			var cachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CACHE");
+			bool valid = false;
+			var now = DateTime.Now;
+			if (File.Exists(cachePath))
+			{
+				byte[] data = File.ReadAllBytes(cachePath);
+				if (data.Length == sizeof(long))
+				{
+					var last = DateTime.FromBinary(BitConverter.ToInt64(data));
+					if (now.Subtract(last).TotalMinutes < 1)
+						valid = true;
+				}
+			}
+			if (!valid)
+			{
+				if (!NativeDialog.ShowYesNo("It appears you haven't visited this game in a while.\n\nIn order to access the game, we must be absolutely certain that you're aware Merux is not affiliated with, endorsed by, or sponsored by Roblox Corporation.\n\nAre you aware that Merux is not affiliated with, endorsed by, or sponsored by Roblox Corporation, and you can visit their website any time at https://www.roblox.com?", "Merux"))
+				{
+					NativeDialog.ShowAlert("We're sorry, but we can't let you cannot access this game until you are aware.", "Merux");
+					return;
+				}
+			}
+			File.WriteAllBytes(cachePath, BitConverter.GetBytes(now.ToBinary()));
+
 			using var game = new MeruxWindow();
 			game.Run();
 		}

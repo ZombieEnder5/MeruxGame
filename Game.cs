@@ -16,6 +16,7 @@ using static OpenTK.Graphics.OpenGL.GL;
 using Merux.Tools;
 using System.IO;
 using System.Diagnostics;
+using SkiaSharp;
 
 /*
  * before I start, I'd like to admit shamefully that I did use ChatGPT for some parts of the code in this project.
@@ -30,7 +31,7 @@ namespace Merux
 
 	public class Game : Instance
 	{
-		public Workspace Workspace = new Workspace();
+		public World Workspace = new World();
 		public static Shader SHADER_PART = Shader.FromPath("Shaders.Part");
 		public static Shader SHADER_SKY = Shader.FromPath("Shaders.Sky");
 		public static Shader SHADER_TEXT = Shader.FromPath("Shaders.Text");
@@ -51,6 +52,8 @@ namespace Merux
 		public event Action? MouseLeftReleaseEvent;
 
 		ScreenButton helpButton;
+		ScreenButton fullButton;
+		ScreenButton exitButton;
 
 		public Texture2D? MouseIcon = TextureSystem.GetTexture("Textures.cursor.pointer.png");
 		Texture2D? sysMouseIcon = null;
@@ -81,6 +84,7 @@ namespace Merux
 		});
 
 		Camera mainCamera = new Camera();
+		WindowState preFSState;
 
 		internal Merux window { get; private set; }
 		public Vector2 windowExtents { 
@@ -106,10 +110,34 @@ namespace Merux
 			tools.Add(Create<CreateTool>(Workspace));
 			tools.Add(Create<DeleteTool>(Workspace));
 
-			helpButton = textRenderer24.RenderScreenImage<ScreenButton>("Help", 0, 64, 5, new Vector3(0,0,0));
-			helpButton.Parent = Workspace;
-			helpButton.BackgroundColor = new Vector3(.8, .8, .8);
-			helpButton.BackgroundTransparency = 0f;
+			helpButton = new ScreenButton()
+			{
+				Parent = Workspace,
+				BackgroundColor = new(.8, .8, .8),
+				BackgroundTransparency = 0.2f,
+				Texture = textRenderer24.Render("Help", 200, 30, 0, new Vector3(0, 0, 0), SKTextAlign.Center),
+				Size = new(200, 30),
+			};
+
+			fullButton = new ScreenButton()
+			{
+				Parent = Workspace,
+				BackgroundColor = new(.8, .8, .8),
+				Position = new(0,0,200,0),
+				BackgroundTransparency = 0.2f,
+				Texture = textRenderer24.Render("Fullscreen", 200, 30, 0, new Vector3(0, 0, 0), SKTextAlign.Center),
+				Size = new(200, 30),
+			};
+
+			exitButton = new ScreenButton()
+			{
+				Parent = Workspace,
+				BackgroundColor = new(.8, .8, .8),
+				Position = new(0,0,400,0),
+				BackgroundTransparency = 0.2f,
+				Texture = textRenderer24.Render("Exit", 200, 30, 0, new Vector3(0, 0, 0), SKTextAlign.Center),
+				Size = new(200, 30),
+			};
 
 			helpButton.OnLeftRelease += () =>
 			{
@@ -130,6 +158,20 @@ namespace Merux
 					try { File.Delete(path); } catch { }
 				});
 			};
+
+			fullButton.OnLeftRelease += () =>
+			{
+				var win = Merux.window;
+				if (win.WindowState == WindowState.Fullscreen)
+					win.WindowState = preFSState;
+				else
+				{
+					preFSState = win.WindowState;
+					win.WindowState = WindowState.Fullscreen;
+				}
+			};
+
+			exitButton.OnLeftRelease += Merux.window.Close;
 
 			ALDevice sdev = ALC.OpenDevice(null);
 			ALContext ctx = ALC.CreateContext(sdev, (int[]?)null);

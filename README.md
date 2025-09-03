@@ -1,4 +1,6 @@
-# Attribution & Credits
+# **DISCLAIMER: Contrary to what some might say, Merux is NOT affiliated with, endorsed by, or sponsored by Roblox Corporation.**
+
+# Third-Party Assets Under Custom Terms
 - <a href="https://www.textstudio.com/">Font generator</a>
 - <a href="https://www.flaticon.com/free-icons/garbage-can" title="garbage can icons">Garbage can icons created by juicy_fish - Flaticon</a>
 

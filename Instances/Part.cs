@@ -242,6 +242,7 @@ namespace Merux.Instances
 			};
 
 			rigidBody = new RigidBody(rbInfo);
+			rigidBody.ActivationState = ActivationState.DisableDeactivation;
 			rbInfo.Dispose();
 		}
 
@@ -275,7 +276,7 @@ namespace Merux.Instances
 			shader.SetMatrix4("model", model);
 			shader.SetMatrix4("view", view);
 			shader.SetMatrix4("projection", projection);
-			Type normType = typeof(NormalId);
+			Type normType = typeof(BoxFace);
 			//i'll fix this later. it's not a big problem right now
 			foreach (int i in Enum.GetValues(normType))
 				shader.SetInt($"FACE_{Enum.GetName(normType, i).ToUpper()}", i);
@@ -353,7 +354,6 @@ namespace Merux.Instances
 					else
 					{
 						rigidBody.CollisionFlags &= ~CollisionFlags.KinematicObject;
-						rigidBody.ActivationState = ActivationState.ActiveTag;
 						rigidBody.CollisionShape.CalculateLocalInertia((float)Mass, out var localInertia);
 						rigidBody.SetMassProps((float)Mass, localInertia);
 					}

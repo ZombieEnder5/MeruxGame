@@ -158,7 +158,7 @@ namespace Merux
 		}
 
 		// this one is relatively simple compared to ToEulerAngles. who would've known.
-		public static CFrame FromEulerAngles(double rx, double ry, double rz, RotationOrder order)
+		public static CFrame FromEulerAngles(double rx, double ry, double rz, EulerOrder order)
 		{
 			double sx = Math.Sin(rx);
 			double sy = Math.Sin(ry);
@@ -171,52 +171,52 @@ namespace Merux
 			Matrix3 Y = new Matrix3(cy, 0, sy, 0, 1, 0, -sy, 0, cy);
 			Matrix3 Z = new Matrix3(cz, -sz, 0, sz, cz, 0, 0, 0, 1);
 
-			if (order == RotationOrder.XYZ) return new CFrame(new Vector3(0, 0, 0), X * Y * Z);
-			if (order == RotationOrder.XZY) return new CFrame(new Vector3(0, 0, 0), X * Z * Y);
-			if (order == RotationOrder.YXZ) return new CFrame(new Vector3(0, 0, 0), Y * X * Z);
-			if (order == RotationOrder.YZX) return new CFrame(new Vector3(0, 0, 0), Y * Z * X);
-			if (order == RotationOrder.ZXY) return new CFrame(new Vector3(0, 0, 0), Z * X * Y);
-			if (order == RotationOrder.ZYX) return new CFrame(new Vector3(0, 0, 0), Z * Y * X);
+			if (order == EulerOrder.XYZ) return new CFrame(new Vector3(0, 0, 0), X * Y * Z);
+			if (order == EulerOrder.XZY) return new CFrame(new Vector3(0, 0, 0), X * Z * Y);
+			if (order == EulerOrder.YXZ) return new CFrame(new Vector3(0, 0, 0), Y * X * Z);
+			if (order == EulerOrder.YZX) return new CFrame(new Vector3(0, 0, 0), Y * Z * X);
+			if (order == EulerOrder.ZXY) return new CFrame(new Vector3(0, 0, 0), Z * X * Y);
+			if (order == EulerOrder.ZYX) return new CFrame(new Vector3(0, 0, 0), Z * Y * X);
 
 			throw new NotImplementedException("how did we even get here");
 		}
 
 		// you have no idea how much math and VBRS to get this right
 		// https://docs.google.com/document/d/1K29oLjsdRzlNjzkhIK9mUdZHgN0k5cQvJw8GyoeU5w4/edit?usp=sharing
-		public Vector3 ToEulerAngles(RotationOrder order)
+		public Vector3 ToEulerAngles(EulerOrder order)
 		{
 			double rx=0, ry=0, rz=0;
-			if (order == RotationOrder.XYZ)
+			if (order == EulerOrder.XYZ)
 			{
 				ry = Math.Asin(ZVector.X);
 				rx = Math.Atan2(-ZVector.Y, ZVector.Z);
 				rz = Math.Atan2(-YVector.X, XVector.X);
 			}
-			if (order == RotationOrder.XZY)
+			if (order == EulerOrder.XZY)
 			{
 				rz = -Math.Asin(YVector.X);
 				rx = Math.Atan2(YVector.Z, YVector.Y);
 				ry = Math.Atan2(ZVector.X, XVector.X);
 			}
-			if (order == RotationOrder.YXZ)
+			if (order == EulerOrder.YXZ)
 			{
 				rx = -Math.Asin(ZVector.Y);
 				ry = Math.Atan2(ZVector.X, ZVector.Z);
 				rz = Math.Atan2(XVector.Y, YVector.Y);
 			}
-			if (order == RotationOrder.YZX)
+			if (order == EulerOrder.YZX)
 			{
 				rz = Math.Asin(XVector.Y);
 				rx = Math.Atan2(-ZVector.Y, YVector.Y);
 				ry = Math.Atan2(-XVector.Z, XVector.X);
 			}
-			if (order == RotationOrder.ZXY)
+			if (order == EulerOrder.ZXY)
 			{
 				rx = Math.Asin(YVector.Z);
 				ry = Math.Atan2(-XVector.Z, ZVector.Z);
 				rz = Math.Atan2(-YVector.X, YVector.Y);
 			}
-			if (order == RotationOrder.ZYX)
+			if (order == EulerOrder.ZYX)
 			{
 				ry = -Math.Asin(XVector.Z);
 				rx = Math.Atan2(YVector.Z, ZVector.Z);
@@ -228,13 +228,13 @@ namespace Merux
 		// using just common sense, you can figure out that ToEulerAnglesXYZ uses the ToEulerAngles function with rotation order XYZ
 		public Vector3 ToEulerAnglesXYZ()
 		{
-			return ToEulerAngles(RotationOrder.XYZ);
+			return ToEulerAngles(EulerOrder.XYZ);
 		}
 
 		// as with ToEulerAnglesXYZ, same with ToEulerAnglesYXZ. except the rotation order is YXZ.
 		public Vector3 ToEulerAnglesYXZ()
 		{
-			return ToEulerAngles(RotationOrder.YXZ);
+			return ToEulerAngles(EulerOrder.YXZ);
 		}
 
 		// https://roblox.fandom.com/wiki/CFrame
@@ -248,13 +248,13 @@ namespace Merux
 		// yadayadayada
 		public static CFrame FromEulerAnglesXYZ(double rx, double ry, double rz)
 		{
-			return FromEulerAngles(rx, ry, rz, RotationOrder.XYZ);
+			return FromEulerAngles(rx, ry, rz, EulerOrder.XYZ);
 		}
 
 		// yadayadayada YXZ
 		public static CFrame FromEulerAnglesYXZ(double rx, double ry, double rz)
 		{
-			return FromEulerAngles(rx, ry, rz, RotationOrder.YXZ);
+			return FromEulerAngles(rx, ry, rz, EulerOrder.YXZ);
 		}
 
 		public static CFrame FromOrientation(double rx, double ry, double rz)

@@ -9,6 +9,7 @@
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<Platforms>AnyCPU;x64;x86</Platforms>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	  <UseWPF>False</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>

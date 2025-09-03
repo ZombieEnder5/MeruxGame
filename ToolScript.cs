@@ -1,6 +1,7 @@
 ﻿using Merux.Instances;
 using Merux.Mathematics;
 using OpenTK.Audio.OpenAL;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +29,7 @@ namespace Merux
 			icon.Size = Vector2.One * Game.TOOL_ICON_SIZE;
 			icon.AnchorPoint = Vector2.YAxis;
 			icon.BackgroundColor = new(1, 1, 1);
-			number = Merux.Game.textRenderer48.RenderScreenImage<ScreenImage>((Merux.Game.GetToolCount() + 1).ToString(), 3, 5);
+			number = Merux.Game.textRenderer48.RenderScreenImage<ScreenImage>((Merux.Game.GetToolCount() + 1).ToString(), 3, 5, SKTextAlign.Left);
 			number.Parent = this;
 			number.Position = pos;
 			number.AnchorPoint = Vector2.YAxis;

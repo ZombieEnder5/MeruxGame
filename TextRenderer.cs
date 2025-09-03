@@ -19,10 +19,9 @@ namespace Merux
 			};
 		}
 
-		public Texture2D Render(string text, int width, int height, int strokeWidth, int padding)
+		public Texture2D Render(string text, int width, int height, int strokeWidth, Vector3 textColor, SKTextAlign align)
 		{
-			width += padding * 2;
-			height += padding * 2;
+			font.MeasureText(text, out var bounds);
 			using SKBitmap bmp = new(width, height, isOpaque: false);
 			using SKCanvas cnv = new(bmp);
 
@@ -30,31 +29,39 @@ namespace Merux
 			{
 				IsAntialias = true,
 				Style = SKPaintStyle.Fill,
-				Color = SKColors.White,
+				Color = new SKColor((byte)(textColor.X * 255f), (byte)(textColor.Y * 255f), (byte)(textColor.Z * 255f)),
 			};
 
-			using var stroke = new SKPaint
+			float x = width * align switch
 			{
-				IsAntialias = true,
-				Style = SKPaintStyle.Stroke,
-				StrokeWidth = strokeWidth,
-				Color = SKColors.Black,
-				StrokeJoin = SKStrokeJoin.Round,
+				SKTextAlign.Left => 0f,
+				SKTextAlign.Center => 0.5f,
+				SKTextAlign.Right => 1f,
+				_ => 0f,
 			};
+			float y = -bounds.MidY + height * .5f;
 
-			font.MeasureText(text, out var bounds);
-			float x = padding;
-			float y = padding;
+			if (strokeWidth > 0)
+			{
+				using var stroke = new SKPaint
+				{
+					IsAntialias = true,
+					Style = SKPaintStyle.Stroke,
+					StrokeWidth = strokeWidth,
+					Color = SKColors.Black,
+					StrokeJoin = SKStrokeJoin.Round,
+				};
+				cnv.DrawText(text, x, y, align, font, stroke);
+			}
 
-			cnv.DrawText(text, x, y, SKTextAlign.Left, font, stroke);
-			cnv.DrawText(text, x, y, SKTextAlign.Left, font, paint);
+			cnv.DrawText(text, x, y, align, font, paint);
 
 			using var img = SKImage.FromBitmap(bmp);
 
-			return new Texture2D(img.PeekPixels().GetPixels(), img.Width, img.Height);
+			return new Texture2D(img.PeekPixels().GetPixels(), width, height);
 		}
 
-		public Texture2D RenderAutoBounds(string text, int strokeWidth, int paddingX, int paddingY, Vector3 textColor)
+		public Texture2D RenderAutoBounds(string text, int strokeWidth, int paddingX, int paddingY, Vector3 textColor, SKTextAlign align)
 		{
 			font.MeasureText(text, out var bounds);
 			int w = (int)bounds.Width + paddingX * 2;
@@ -71,7 +78,13 @@ namespace Merux
 				Color = new SKColor((byte)(textColor.X * 255f), (byte)(textColor.Y * 255f), (byte)(textColor.Z * 255f)),
 			};
 
-			float x = paddingX;
+			float x = paddingX + bounds.Right * align switch
+			{
+				SKTextAlign.Left => 0f,
+				SKTextAlign.Center => 0.5f,
+				SKTextAlign.Right => 1f,
+				_ => 0f,
+			};
 			float y = paddingY - bounds.Top;
 
 			if (strokeWidth > 0)
@@ -84,33 +97,33 @@ namespace Merux
 					Color = SKColors.Black,
 					StrokeJoin = SKStrokeJoin.Round,
 				};
-				cnv.DrawText(text, x, y, SKTextAlign.Left, font, stroke);
+				cnv.DrawText(text, x, y, align, font, stroke);
 			}
 
-			cnv.DrawText(text, x, y, SKTextAlign.Left, font, paint);
+			cnv.DrawText(text, x, y, align, font, paint);
 
 			using var img = SKImage.FromBitmap(bmp);
 
 			return new Texture2D(img.PeekPixels().GetPixels(), w, h);
 		}
 
-		public T RenderScreenImage<T>(string text, int strokeWidth, int paddingX, int paddingY, Vector3 textColor) where T : ScreenImage
+		public T RenderScreenImage<T>(string text, int strokeWidth, int paddingX, int paddingY, Vector3 textColor, SKTextAlign align) where T : ScreenImage
 		{
-			var tex = RenderAutoBounds(text, strokeWidth, paddingX, paddingY, textColor);
+			var tex = RenderAutoBounds(text, strokeWidth, paddingX, paddingY, textColor, align);
 			T result = Instance.Create<T>();
 			result.Texture = tex;
 			result.Size = Vector2.FromOpenTK(tex.Size);
 			return result;
 		}
 
-		public T RenderScreenImage<T>(string text, int strokeWidth, int paddingX, int paddingY) where T : ScreenImage
+		public T RenderScreenImage<T>(string text, int strokeWidth, int paddingX, int paddingY, SKTextAlign align) where T : ScreenImage
 		{
-			return RenderScreenImage<T>(text, strokeWidth, paddingX, paddingY, Vector3.One);
+			return RenderScreenImage<T>(text, strokeWidth, paddingX, paddingY, Vector3.One, align);
 		}
 
-		public T RenderScreenImage<T>(string text, int strokeWidth, int padding) where T : ScreenImage
+		public T RenderScreenImage<T>(string text, int strokeWidth, int padding, SKTextAlign align) where T : ScreenImage
 		{
-			return RenderScreenImage<T>(text, strokeWidth, padding, padding);
+			return RenderScreenImage<T>(text, strokeWidth, padding, padding, align);
 		}
 	}
 }

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Merux.Instances
 {
-	public class Workspace : Instance
+	public class World : Instance
 	{
 		public new string Name = "Workspace";
 		public float Gravity
@@ -30,7 +30,7 @@ namespace Merux.Instances
 		public Dictionary<RigidBody, Part> rigidReference = new Dictionary<RigidBody, Part>();
 		public DiscreteDynamicsWorld PhysWorld { get; }
 
-		public Workspace() : base()
+		public World() : base()
 		{
 			Name = "Workspace";
 			physConf = new();
